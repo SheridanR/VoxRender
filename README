@@ -1,0 +1,33 @@
+VoxRender is a program that loads 3D voxel models from VOX files and renders them to an SDL graphic window.
+
+----- ARGUMENTS -----
+
+VoxRender only takes one argument: the filename of the voxel model to load. Ex:
+
+voxrender chair.vox
+
+The above command loads and displays the included "chair.vox" model.
+
+Note that in Windows, you can simply drag and drop different files onto voxrender.exe to have it load and display them.
+
+----- CONTROLS -----
+
+The following keystrokes can be used while the program is running:
+
+Arrow keys	-	Move camera forward, backward, left, and right
+Page up/down	-	Move camera up/down
+Shift		-	Speed key
+Space bar		-	Reorient model at camera position
+Escape		-	Close program
+
+----- KNOWN ISSUES -----
+
+* Fishbowl effect
+* Slow performance with some models
+* Occasionally visible "cracks"
+
+----- CONTACT -----
+
+All suggestions, comments, and questions should be sent to: sheridan.rathbun@gmail.com
+
+I look forward to hearing from you!
