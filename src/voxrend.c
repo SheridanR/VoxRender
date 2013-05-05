@@ -118,6 +118,7 @@ void DrawVoxel( voxel_t *model, long posx, long posy, long posz, double yaw, dou
 	double ax, ay;
 	int cosang, sinang;
 	double cosyaw, sinyaw, cospitch, sinpitch, cosroll, sinroll;
+	long offX, offY, offZ;
 
 	// drawing variables
 	int cull;
@@ -175,20 +176,16 @@ void DrawVoxel( voxel_t *model, long posx, long posy, long posz, double yaw, dou
 					color = SDL_MapRGB( screen->format, model->palette[model->data[index]][0], model->palette[model->data[index]][1], model->palette[model->data[index]][2] );
 				else
 					continue;
+					
+				// calculate model offsets
+				offX=(voxX - model->sizex/2);
+				offY=(voxY - model->sizey/2);
+				offZ=(voxZ - model->sizez/2);
 				
-				// first, calculate the distance between the player and the voxbit
-				dx = posx - camx;
-				dx += (voxX - model->sizex/2)*cospitch*cosyaw;
-				dx += (voxY - model->sizey/2)*cosroll*sinyaw + (voxY - model->sizey/2)*sinroll*sinpitch*cosyaw;
-				dx += (voxZ - model->sizez/2)*sinroll*sinyaw - (voxZ - model->sizez/2)*cosroll*sinpitch*cosyaw;
-				dy = camy - posy;
-				dy += -(voxX - model->sizex/2)*cospitch*sinyaw;
-				dy += (voxY - model->sizey/2)*cosroll*cosyaw - (voxY - model->sizey/2)*sinroll*sinpitch*sinyaw;
-				dy += (voxZ - model->sizez/2)*sinroll*cosyaw + (voxZ - model->sizez/2)*cosroll*sinpitch*sinyaw;
-				dz = posz - camz;
-				dz += (voxX - model->sizex/2)*sinpitch;
-				dz += -(voxY - model->sizey/2)*sinroll*cospitch;
-				dz += (voxZ - model->sizez/2)*cosroll*cospitch;
+				// first, calculate the distance between the player and the voxbit (performing rotation)
+				dx = posx - camx + (offX*cospitch*cosyaw) + (offY*cosroll*sinyaw + offY*sinroll*sinpitch*cosyaw) + offZ*sinroll*sinyaw - offZ*cosroll*sinpitch*cosyaw;
+				dy = camy - posy - (offX*cospitch*sinyaw) + (offY*cosroll*cosyaw - offY*sinroll*sinpitch*sinyaw) + offZ*sinroll*cosyaw + offZ*cosroll*sinpitch*sinyaw;
+				dz = posz - camz + (offX*sinpitch) - (offY*sinroll*cospitch) + (offZ*cosroll*cospitch);
 				d = sqrt(dx*dx + dy*dy);
 				if( d < 5 ) continue; // bit is too close
 				if( d > 1000 ) continue; // bit is too far
