@@ -109,15 +109,15 @@ void PrintText( SDL_Surface *font_bmp, int x, int y, char *fmt, ... ) {
 	va_end( argptr );
 }
 
-void DrawVoxel( voxel_t *model, long posx, long posy, long posz, double angle ) {
+void DrawVoxel( voxel_t *model, long posx, long posy, long posz, double yaw, double pitch, double roll ) {
 	voxbit_t *bit = NULL;
 	voxbit_t *nextbit = NULL;
 	voxbit_t *firstbit = NULL;
-	//voxbit_t *lastbit = NULL;
 	unsigned long d;
-	double dx, dy;
+	double dx, dy, dz;
 	double ax, ay;
-	double cosang, sinang;
+	int cosang, sinang;
+	double cosyaw, sinyaw, cospitch, sinpitch, cosroll, sinroll;
 
 	// drawing variables
 	int cull;
@@ -128,10 +128,19 @@ void DrawVoxel( voxel_t *model, long posx, long posy, long posz, double angle ) 
 	int index;
 	double sprsize;
 	Uint8 *p;
-	//int printed=0;
-
-	cosang = cos( camang );
-	sinang = sin( camang );
+	Uint32 color;
+	
+	// model angles
+	cosyaw = cos(yaw);
+	sinyaw = sin(yaw);
+	cospitch = cos(pitch);
+	sinpitch = sin(pitch);
+	cosroll = cos(roll);
+	sinroll = sin(roll);
+	
+	// viewport variables
+	cosang = ((int)(cos(camang)*64))<<8;
+	sinang = ((int)(sin(camang)*64))<<8;
 	hx = xres>>1; hy = yres>>1;
 	sprsize = 128.0*((double)xres/320.0);
 
@@ -160,53 +169,57 @@ void DrawVoxel( voxel_t *model, long posx, long posy, long posz, double angle ) 
 				if( cull==1 )
 					continue;
 				
+				// get the bit color
+				index = voxZ+voxY*model->sizez+voxX*model->sizez*model->sizey;
+				if( model->data[index] != 255 )
+					color = SDL_MapRGB( screen->format, model->palette[model->data[index]][0], model->palette[model->data[index]][1], model->palette[model->data[index]][2] );
+				else
+					continue;
+				
 				// first, calculate the distance between the player and the voxbit
-				dx = ((voxX - model->sizex/2)*cos(angle) - (model->sizey/2 - voxY)*sin(angle)) - camx + posx;
-				dy = camy + ((model->sizex/2 - voxX)*sin(angle) + (voxY - model->sizey/2)*cos(angle)) - posy;
+				dx = posx - camx;
+				dx += (voxX - model->sizex/2)*cospitch*cosyaw;
+				dx += (voxY - model->sizey/2)*cosroll*sinyaw + (voxY - model->sizey/2)*sinroll*sinpitch*cosyaw;
+				dx += (voxZ - model->sizez/2)*sinroll*sinyaw - (voxZ - model->sizez/2)*cosroll*sinpitch*cosyaw;
+				dy = camy - posy;
+				dy += -(voxX - model->sizex/2)*cospitch*sinyaw;
+				dy += (voxY - model->sizey/2)*cosroll*cosyaw - (voxY - model->sizey/2)*sinroll*sinpitch*sinyaw;
+				dy += (voxZ - model->sizez/2)*sinroll*cosyaw + (voxZ - model->sizez/2)*cosroll*sinpitch*sinyaw;
+				dz = posz - camz;
+				dz += (voxX - model->sizex/2)*sinpitch;
+				dz += -(voxY - model->sizey/2)*sinroll*cospitch;
+				dz += (voxZ - model->sizez/2)*cosroll*cospitch;
 				d = sqrt(dx*dx + dy*dy);
 				if( d < 5 ) continue; // bit is too close
 				if( d > 1000 ) continue; // bit is too far
 				
 				// get the onscreen direction to the voxbit
-				ax = (dx*(sinang*.25))+(dy*(cosang*.25));
-				ay = (dx*(cosang*.25))-(dy*(sinang*.25));
+				ax = (dx*sinang)+(dy*cosang);
+				ay = (dx*cosang)-(dy*sinang);
 				if( ay <= 0 ) continue; // bit is outside the view frustrum
 				
 				// allocate memory for the voxbit
 				bit = (voxbit_t *) malloc(sizeof(voxbit_t));
 				bit->d = d;
+				bit->color = color;
 				
 				// compute and store final information about the voxbit
 				bit->sx = (ax*(hx/ay)*-1)+hx; // onscreen position x
-				bit->sy = hy+((((voxZ-model->sizez/2)-camz+posz)*2.0/3)/d)*yres; // onscreen position y
+				bit->sy = hy+(((dz)*2.0/3)/d)*yres; // onscreen position y
 				
 				bit->x1 = max( bit->sx-(1.0/d*sprsize), 0 );
 				bit->x2 = min( bit->sx+(1.0/d*sprsize)+1, xres );
 				bit->y1 = max( bit->sy-(1.0/d*sprsize), 0 );
 				bit->y2 = min( bit->sy+(1.0/d*sprsize)+1, yres );
 				
-				index = voxZ+voxY*model->sizez+voxX*model->sizez*model->sizey;
-				if( model->data[index] != 255 )
-					bit->color = SDL_MapRGB( screen->format, model->palette[model->data[index]][0], model->palette[model->data[index]][1], model->palette[model->data[index]][2] );
-				else
-					bit->color = 0;
-				
 				// place the voxbit in the list
 				if( firstbit == NULL ) {
 					firstbit = bit;
-					//lastbit = bit;
 					bit->next = NULL;
 				}
 				else {
-					//if( dx+camx<dy-camy ) {
-						bit->next = firstbit;
-						firstbit = bit;
-					/*}
-					else {
-						lastbit->next = bit;
-						bit->next = NULL;
-						lastbit = bit;
-					}*/
+					bit->next = firstbit;
+					firstbit = bit;
 				}
 			}
 		}
@@ -220,10 +233,8 @@ void DrawVoxel( voxel_t *model, long posx, long posy, long posz, double angle ) 
 				screenindex=bit->x1*screen->format->BytesPerPixel;
 				for( x=bit->x1; x<bit->x2; x++ ) {
 					if( bit->d < zbuffer[x+y*xres] || !zbuffer[x+y*xres] ) {
-						if( bit->color ) {
-							*(Uint32 *)((Uint8 *)p + screenindex) = bit->color;
-							zbuffer[x+y*xres]=bit->d;
-						}
+						*(Uint32 *)((Uint8 *)p + screenindex) = bit->color;
+						zbuffer[x+y*xres]=bit->d;
 					}
 					screenindex+=screen->format->BytesPerPixel;
 				}
@@ -304,7 +315,7 @@ int main(int argc, char **argv ) {
 		// rendering
 		memset( zbuffer, 0, xres*yres*sizeof(long) );
 		SDL_FillRect(screen, NULL, SDL_MapRGB(screen->format,50,50,150)); // wipe screen
-		DrawVoxel(&model,vx,vy,vz,modelang);
+		DrawVoxel(&model,vx,vy,vz,modelang,modelang,modelang);
 		
 		// print some debug info
 		PrintText(font8_bmp,8,yres-16,"FPS: %d", fps);
