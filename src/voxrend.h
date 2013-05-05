@@ -31,6 +31,7 @@ SDL_Surface *screen;
 SDL_Event event;
 int xres = 640;
 int yres = 480;
+int fullscreen = 0;
 long *zbuffer;
 int mainloop = 1;
 int keystatus[323];

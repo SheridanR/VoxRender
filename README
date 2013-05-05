@@ -2,13 +2,17 @@ VoxRender is a program that loads 3D voxel models from VOX files and renders the
 
 ----- ARGUMENTS -----
 
-VoxRender only takes one argument: the filename of the voxel model to load. Ex:
+VoxRender can take up to three different arguments: a .vox file to load, as well as the following.
 
-voxrender chair.vox
+-fullscreen	-	Starts the program in fullscreen mode.
+-size=???x???	-	Sets the display resolution.
 
-The above command loads and displays the included "chair.vox" model.
+Ex:
+voxrender chair.vox -fullscreen -size=800x600
 
-Note that in Windows, you can simply drag and drop different files onto voxrender.exe to have it load and display them.
+The above command loads and displays the included "chair.vox" model in a full screen at 800x600.
+
+Note that in Windows, you can simply drag and drop different files onto voxrender.exe to have it load and display them. The default display is 640x480 in a window.
 
 ----- CONTROLS -----
 
@@ -23,7 +27,6 @@ Escape		-	Close program
 ----- KNOWN ISSUES -----
 
 * Fishbowl effect
-* Slow performance with some models
 * Occasionally visible "cracks"
 
 ----- CONTACT -----

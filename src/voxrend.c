@@ -252,8 +252,10 @@ void DrawVoxel( voxel_t *model, long posx, long posy, long posz, double yaw, dou
 }
 
 int main(int argc, char **argv ) {
-	char *filename;
+	char *filename = NULL;
+	char temp[10];
 	int file;
+	int a;
 	double modelang=0;
 	long vx=0;
 	long vy=0;
@@ -261,15 +263,29 @@ int main(int argc, char **argv ) {
 
 	// load a voxel model
 	if( argc>1 ) {
-		filename = argv[1];
-		if( strstr(filename,".vox") == NULL )
-			strcat(filename,".vox");
-		if((file = open(filename,O_RDONLY))==-1) {
-			printf("Failed to open specified file.");
-			return 1;
+		for(a=1; a<argc; a++) {
+			if( argv[a] != NULL ) {
+				if( !strcmp(argv[a], "-fullscreen") ) {
+					fullscreen = 1;
+				}
+				else if( !strncmp(argv[a], "-size=", 6) ) {
+					strncpy(temp,argv[a]+6,strcspn(argv[a]+6,"x"));
+					xres = max(320,atoi(temp));
+					yres = max(200,atoi(argv[a]+6+strcspn(argv[a]+6,"x")+1));
+				}
+				else {
+					filename = argv[1];
+					if( strstr(filename,".vox") == NULL )
+						strcat(filename,".vox");
+					if((file = open(filename,O_RDONLY))==-1) {
+						printf("Failed to open specified file.");
+						return 1;
+					}
+				}
+			}
 		}
 	}
-	else {
+	if( filename == NULL ) {
 		printf("Usage: voxrender FILE\n");
 		printf("Ex: voxrender desklamp.vox\n");
 		return 1;
@@ -291,9 +307,13 @@ int main(int argc, char **argv ) {
 		printf("Could not initialize SDL. Aborting...\n\n");
 		return 1;
 	}
-	screen = SDL_SetVideoMode( xres, yres, 32, SDL_HWSURFACE );
+	if( fullscreen ) {
+		screen = SDL_SetVideoMode( xres, yres, 32, SDL_HWSURFACE | SDL_FULLSCREEN );
+		SDL_ShowCursor(0);
+	}
+	else
+		screen = SDL_SetVideoMode( xres, yres, 32, SDL_HWSURFACE );
 	SDL_WM_SetCaption( "VoxRender", 0 );
-	SDL_ShowCursor(0);
 	zbuffer = (long *) malloc(xres*yres*sizeof(long));
 	
 	// main loop
