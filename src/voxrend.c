@@ -179,7 +179,7 @@ void DrawVoxel( voxel_t *model, long posx, long posy, long posz, double yaw, dou
 					
 				// calculate model offsets
 				offX=(voxX - model->sizex/2);
-				offY=(voxY - model->sizey/2);
+				offY=(model->sizey/2 - voxY);
 				offZ=(voxZ - model->sizez/2);
 				
 				// first, calculate the distance between the player and the voxbit (performing rotation)
