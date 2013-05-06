@@ -121,12 +121,12 @@ void DrawVoxel( voxel_t *model, long posx, long posy, long posz, double yaw, dou
 	long offX, offY, offZ;
 
 	// drawing variables
-	int cull;
 	long hx, hy;
 	long voxX, voxY, voxZ;
 	int x, y;
 	int screenindex;
 	int index;
+	int bitsize;
 	double sprsize;
 	Uint8 *p;
 	Uint32 color;
@@ -149,30 +149,9 @@ void DrawVoxel( voxel_t *model, long posx, long posy, long posz, double yaw, dou
 	for( voxX=0; voxX<model->sizex; voxX++ ) {
 		for( voxY=0; voxY<model->sizey; voxY++ ) {
 			for( voxZ=0; voxZ<model->sizez; voxZ++ ) {
-				// skip this bit if it's enclosed by other bits
-				cull=1;
-				if( voxX == 0 || voxX == model->sizex-1 || voxY == 0 || voxY == model->sizey-1 || voxZ == 0 || voxZ == model->sizez-1 )
-					cull = 0;
-				else {
-					if( model->data[voxZ+voxY*model->sizez+(voxX-1)*model->sizez*model->sizey] == 255 )
-						cull=0;
-					else if( model->data[voxZ+voxY*model->sizez+(voxX+1)*model->sizez*model->sizey] == 255 )
-						cull=0;
-					if( model->data[voxZ+(voxY-1)*model->sizez+voxX*model->sizez*model->sizey] == 255 )
-						cull=0;
-					else if( model->data[voxZ+(voxY+1)*model->sizez+voxX*model->sizez*model->sizey] == 255 )
-						cull=0;
-					if( model->data[(voxZ-1)+voxY*model->sizez+voxX*model->sizez*model->sizey] == 255 )
-						cull=0;
-					else if( model->data[(voxZ+1)+voxY*model->sizez+voxX*model->sizez*model->sizey] == 255 )
-						cull=0;
-				}
-				if( cull==1 )
-					continue;
-				
 				// get the bit color
 				index = voxZ+voxY*model->sizez+voxX*model->sizez*model->sizey;
-				if( model->data[index] != 255 )
+				if( model->data[index] != 255 && model->data[index] )
 					color = SDL_MapRGB( screen->format, model->palette[model->data[index]][0]<<2, model->palette[model->data[index]][1]<<2, model->palette[model->data[index]][2]<<2 );
 				else
 					continue;
@@ -187,8 +166,8 @@ void DrawVoxel( voxel_t *model, long posx, long posy, long posz, double yaw, dou
 				dy = camy - posy - (offX*cospitch*sinyaw) + (offY*cosroll*cosyaw - offY*sinroll*sinpitch*sinyaw) + offZ*sinroll*cosyaw + offZ*cosroll*sinpitch*sinyaw;
 				dz = posz - camz + (offX*sinpitch) - (offY*sinroll*cospitch) + (offZ*cosroll*cospitch);
 				d = sqrt(dx*dx + dy*dy);
-				if( d < 5 ) continue; // bit is too close
-				if( d > 1000 ) continue; // bit is too far
+				if( d < CLIPNEAR ) continue; // bit is too close
+				if( d > CLIPFAR ) continue; // bit is too far
 				
 				// get the onscreen direction to the voxbit
 				ax = (dx*sinang)+(dy*cosang);
@@ -204,10 +183,11 @@ void DrawVoxel( voxel_t *model, long posx, long posy, long posz, double yaw, dou
 				bit->sx = (ax*(hx/ay)*-1)+hx; // onscreen position x
 				bit->sy = hy+(((dz)*2.0/3)/d)*yres; // onscreen position y
 				
-				bit->x1 = max( bit->sx-(1.0/d*sprsize), 0 );
-				bit->x2 = min( bit->sx+(1.0/d*sprsize)+1, xres );
-				bit->y1 = max( bit->sy-(1.0/d*sprsize), 0 );
-				bit->y2 = min( bit->sy+(1.0/d*sprsize)+1, yres );
+				bitsize = 1.0/d*sprsize;
+				bit->x1 = max( bit->sx-bitsize-1, 0 );
+				bit->x2 = min( bit->sx+bitsize+1, xres );
+				bit->y1 = max( bit->sy-bitsize-1, 0 );
+				bit->y2 = min( bit->sy+bitsize+1, yres );
 				
 				// place the voxbit in the list
 				if( firstbit == NULL ) {

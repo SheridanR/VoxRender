@@ -56,6 +56,8 @@ double camx = 0;
 double camy = 100;
 double camz = 0;
 double camang = 3.0*PI/2.0;
+#define CLIPNEAR 5
+#define CLIPFAR 2000
 
 // various definitions
 SDL_Surface *font8_bmp;
