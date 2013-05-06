@@ -173,7 +173,7 @@ void DrawVoxel( voxel_t *model, long posx, long posy, long posz, double yaw, dou
 				// get the bit color
 				index = voxZ+voxY*model->sizez+voxX*model->sizez*model->sizey;
 				if( model->data[index] != 255 )
-					color = SDL_MapRGB( screen->format, model->palette[model->data[index]][0], model->palette[model->data[index]][1], model->palette[model->data[index]][2] );
+					color = SDL_MapRGB( screen->format, model->palette[model->data[index]][0]<<2, model->palette[model->data[index]][1]<<2, model->palette[model->data[index]][2]<<2 );
 				else
 					continue;
 					
