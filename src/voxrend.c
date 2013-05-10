@@ -16,12 +16,23 @@
 
 void ReceiveInput(void) {
 	int speed;
+	double d;
+	int j;
 
-	// calculate frame rate
+	// calculate app rate
 	t = SDL_GetTicks();
-	timesync = (t - ot)/2;
+	timesync = t-ot;
 	ot = t;
-	fps = (int)(1/timesync*500);
+	
+	// calculate fps
+	if( timesync != 0 )
+		frameval[cycles&(AVERAGEFRAMES-1)] = 1.0/timesync;
+	else
+		frameval[cycles&(AVERAGEFRAMES-1)] = 1.0;
+	d = frameval[0];
+	for(j=1;j<AVERAGEFRAMES;j++)
+		d += frameval[j];
+	fps = d/AVERAGEFRAMES*1000;
 	
 	// get input
 	mousex = 0;
@@ -56,10 +67,10 @@ void ReceiveInput(void) {
 		
 	// move camera
 	speed = 1+keystatus[SDLK_LSHIFT];
-	camx += (keystatus[SDLK_UP]-keystatus[SDLK_DOWN])*cos(camang)*timesync*.25*speed;
-	camy += (keystatus[SDLK_UP]-keystatus[SDLK_DOWN])*sin(camang)*timesync*.25*speed;
-	camz += (keystatus[SDLK_PAGEDOWN]-keystatus[SDLK_PAGEUP])*timesync*.5*speed;
-	camang += (keystatus[SDLK_RIGHT]-keystatus[SDLK_LEFT])*timesync*.004;
+	camx += (keystatus[SDLK_UP]-keystatus[SDLK_DOWN])*cos(camang)*timesync*.125*speed;
+	camy += (keystatus[SDLK_UP]-keystatus[SDLK_DOWN])*sin(camang)*timesync*.125*speed;
+	camz += (keystatus[SDLK_PAGEDOWN]-keystatus[SDLK_PAGEUP])*timesync*.25*speed;
+	camang += (keystatus[SDLK_RIGHT]-keystatus[SDLK_LEFT])*timesync*.002;
 	while( camang > PI*2 )
 		camang -= PI*2;
 	while( camang < 0 )
@@ -299,7 +310,7 @@ int main(int argc, char **argv ) {
 		ReceiveInput();
 		
 		// rotate the model
-		modelang += timesync*.005;
+		modelang += timesync*.0025;
 		while( modelang > PI*2 )
 			modelang -= PI*2;
 		if(keystatus[SDLK_SPACE]) {
@@ -315,13 +326,14 @@ int main(int argc, char **argv ) {
 		DrawVoxel(&model,vx,vy,vz,modelang,modelang,modelang);
 		
 		// print some debug info
-		PrintText(font8_bmp,8,yres-16,"FPS: %d", fps);
+		PrintText(font8_bmp,8,yres-16,"FPS:%6.1f", fps);
 		PrintText(font8_bmp,8,8,"angle: %d", (long)(camang*180.0/PI));
 		PrintText(font8_bmp,8,16,"x: %d", (long)camx);
 		PrintText(font8_bmp,8,24,"y: %d", (long)camy);
 		PrintText(font8_bmp,8,32,"z: %d", (long)camz);
 		
 		SDL_Flip( screen );
+		cycles++;
 	}
 	
 	// deinit

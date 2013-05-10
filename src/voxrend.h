@@ -37,8 +37,11 @@ int mainloop = 1;
 int keystatus[323];
 int mousestatus[5];
 int mousex, mousey;
-double t, ot, timesync;
-int fps;
+#define AVERAGEFRAMES 32
+double t, ot = 0.0, frameval[AVERAGEFRAMES];
+unsigned long cycles = 0;
+long timesync = 0;
+double fps = 0.0;
 
 #define max(a,b) \
 		({ typeof (a) _a = (a); \
