@@ -2,7 +2,7 @@
 #	
 #	VOXRENDER
 #	File: mingw32 makefile
-#	Desc: The VoxRender makefile, mingw32 version
+#	Desc: The VoxRender makefile, linux version
 #	
 #	Copyright 2013 (c) Sheridan Rathbun, all rights reserved.
 #	See LICENSE for details.
