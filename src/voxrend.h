@@ -5,7 +5,7 @@
 	Desc: contains some prototypes as well as various type definitions
 
 	Copyright 2013 (c) Sheridan Rathbun, all rights reserved.
-	See LICENSE.TXT for details.
+	See LICENSE for details.
 
 -------------------------------------------------------------------------------*/
 
