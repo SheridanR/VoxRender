@@ -192,7 +192,7 @@ void DrawVoxel( voxel_t *model, long posx, long posy, long posz, double yaw, dou
 				
 				// compute and store final information about the voxbit
 				bit->sx = (ax*(hx/ay)*-1)+hx; // onscreen position x
-				bit->sy = hy+(((dz)*2.0/3)/d)*yres; // onscreen position y
+				bit->sy = hy+((dz*2.0/3)/d)*yres; // onscreen position y
 				
 				bitsize = 1.0/d*sprsize;
 				bit->x1 = max( bit->sx-bitsize-1, 0 );
