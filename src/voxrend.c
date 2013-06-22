@@ -177,8 +177,6 @@ void DrawVoxel( voxel_t *model, long posx, long posy, long posz, double yaw, dou
 				dy = camy - posy - (offX*cospitch*sinyaw) + (offY*cosroll*cosyaw - offY*sinroll*sinpitch*sinyaw) + offZ*sinroll*cosyaw + offZ*cosroll*sinpitch*sinyaw;
 				dz = posz - camz + (offX*sinpitch) - (offY*sinroll*cospitch) + (offZ*cosroll*cospitch);
 				d = sqrt(dx*dx + dy*dy);
-				if( d < CLIPNEAR ) continue; // bit is too close
-				if( d > CLIPFAR ) continue; // bit is too far
 				
 				// get the onscreen direction to the voxbit
 				ax = (dx*sinang)+(dy*cosang);
@@ -192,6 +190,10 @@ void DrawVoxel( voxel_t *model, long posx, long posy, long posz, double yaw, dou
 				// compute and store final information about the voxbit
 				bit->sx = (ax*(hx/ay)*-1)+hx; // onscreen position x
 				d *= cos((bit->sx-hx)*(1.0/xres)*(PI/2.0)); // correct fishbowl effect
+				if( d < CLIPNEAR || d > CLIPFAR ) {
+					free(bit);
+					continue;
+				}
 				bit->d = d;
 				bit->sy = hy+((dz*2.0/3)/d)*yres; // onscreen position y
 				
