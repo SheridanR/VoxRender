@@ -132,7 +132,7 @@ void DrawVoxel( voxel_t *model, long posx, long posy, long posz, double yaw, dou
 	long offX, offY, offZ;
 
 	// drawing variables
-	long hx, hy;
+	long hx, hy, hz;
 	long voxX, voxY, voxZ;
 	int x, y;
 	int screenindex;
@@ -153,7 +153,7 @@ void DrawVoxel( voxel_t *model, long posx, long posy, long posz, double yaw, dou
 	// viewport variables
 	cosang = ((int)(cos(camang)*64))<<8;
 	sinang = ((int)(sin(camang)*64))<<8;
-	hx = xres>>1; hy = yres>>1;
+	hx = xres>>1; hy = yres>>1; hz = hx;
 	sprsize = 128.0*((double)xres/320.0);
 
 	// generate a list of voxbits to be drawn
@@ -195,7 +195,7 @@ void DrawVoxel( voxel_t *model, long posx, long posy, long posz, double yaw, dou
 					continue;
 				}
 				bit->d = d;
-				bit->sy = hy+((dz*2.0/3)/d)*yres; // onscreen position y
+				bit->sy = hy+((hz/(double)d)*dz); // onscreen position y
 				
 				bitsize = 1.0/d*sprsize;
 				bit->x1 = max( bit->sx-bitsize-1, 0 );
@@ -265,7 +265,8 @@ int main(int argc, char **argv ) {
 					yres = max(200,atoi(argv[a]+6+strcspn(argv[a]+6,"x")+1));
 				}
 				else {
-					filename = argv[1];
+					filename = (char *) malloc(sizeof(char)*strlen(argv[a])+4);
+					strcpy(filename,argv[a]);
 					if( strstr(filename,".vox") == NULL )
 						strcat(filename,".vox");
 					if((file = open(filename,O_RDONLY))==-1) {
@@ -344,6 +345,7 @@ int main(int argc, char **argv ) {
 	SDL_FreeSurface(font8_bmp);
 	free(model.data);
 	free(zbuffer);
+	free(filename);
 	SDL_Quit();
 	return 0;
 }
