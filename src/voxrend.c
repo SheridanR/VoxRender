@@ -187,11 +187,12 @@ void DrawVoxel( voxel_t *model, long posx, long posy, long posz, double yaw, dou
 				
 				// allocate memory for the voxbit
 				bit = (voxbit_t *) malloc(sizeof(voxbit_t));
-				bit->d = d;
 				bit->color = color;
 				
 				// compute and store final information about the voxbit
 				bit->sx = (ax*(hx/ay)*-1)+hx; // onscreen position x
+				d *= cos((bit->sx-hx)*(1.0/xres)*(PI/2.0)); // correct fishbowl effect
+				bit->d = d;
 				bit->sy = hy+((dz*2.0/3)/d)*yres; // onscreen position y
 				
 				bitsize = 1.0/d*sprsize;
