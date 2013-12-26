@@ -67,14 +67,14 @@ void ReceiveInput(void) {
 		
 	// move camera
 	speed = 1+keystatus[SDLK_LSHIFT];
-	camx += (keystatus[SDLK_UP]-keystatus[SDLK_DOWN])*cos(camang)*timesync*.125*speed;
-	camy += (keystatus[SDLK_UP]-keystatus[SDLK_DOWN])*sin(camang)*timesync*.125*speed;
-	camz += (keystatus[SDLK_PAGEDOWN]-keystatus[SDLK_PAGEUP])*timesync*.25*speed;
-	camang += (keystatus[SDLK_RIGHT]-keystatus[SDLK_LEFT])*timesync*.002;
-	while( camang > PI*2 )
-		camang -= PI*2;
-	while( camang < 0 )
-		camang += PI*2;
+	camera.x += (keystatus[SDLK_UP]-keystatus[SDLK_DOWN])*cos(camera.ang)*timesync*.125*speed;
+	camera.y += (keystatus[SDLK_UP]-keystatus[SDLK_DOWN])*sin(camera.ang)*timesync*.125*speed;
+	camera.z += (keystatus[SDLK_PAGEDOWN]-keystatus[SDLK_PAGEUP])*timesync*.25*speed;
+	camera.ang += (keystatus[SDLK_RIGHT]-keystatus[SDLK_LEFT])*timesync*.002;
+	while( camera.ang > PI*2 )
+		camera.ang -= PI*2;
+	while( camera.ang < 0 )
+		camera.ang += PI*2;
 }
 
 void PrintText( SDL_Surface *font_bmp, int x, int y, char *fmt, ... ) {
@@ -121,22 +121,23 @@ void PrintText( SDL_Surface *font_bmp, int x, int y, char *fmt, ... ) {
 }
 
 void DrawVoxel( voxel_t *model, long posx, long posy, long posz, double yaw, double pitch, double roll ) {
-	voxbit_t *bit = NULL;
-	voxbit_t *nextbit = NULL;
-	voxbit_t *firstbit = NULL;
-	unsigned long d;
+	double d;
 	double dx, dy, dz;
 	double ax, ay;
-	int cosang, sinang;
+	double cosang, sinang;
 	double cosyaw, sinyaw, cospitch, sinpitch, cosroll, sinroll;
-	long offX, offY, offZ;
+	double offX, offY, offZ;
+	double perspective;
 
 	// drawing variables
-	long hx, hy, hz;
-	long voxX, voxY, voxZ;
+	int hx, hy, hz;
+	int voxX, voxY, voxZ;
 	int x, y;
+	int sx, sy;
+	int x1, x2, y1, y2;
 	int screenindex;
 	int index;
+	int zoffset;
 	int bitsize;
 	double sprsize;
 	Uint8 *p;
@@ -151,10 +152,11 @@ void DrawVoxel( voxel_t *model, long posx, long posy, long posz, double yaw, dou
 	sinroll = sin(roll);
 	
 	// viewport variables
-	cosang = ((int)(cos(camang)*64))<<8;
-	sinang = ((int)(sin(camang)*64))<<8;
+	cosang = cos(camera.ang);
+	sinang = sin(camera.ang);
 	hx = xres>>1; hy = yres>>1; hz = hx;
 	sprsize = 128.0*((double)xres/320.0);
+	perspective = (1.0/xres/320.0)*(PI/2.0);
 
 	// generate a list of voxbits to be drawn
 	for( voxX=0; voxX<model->sizex; voxX++ ) {
@@ -172,73 +174,48 @@ void DrawVoxel( voxel_t *model, long posx, long posy, long posz, double yaw, dou
 				offY=(model->sizey/2 - voxY);
 				offZ=(voxZ - model->sizez/2);
 				
-				// first, calculate the distance between the player and the voxbit (performing rotation)
-				dx = posx - camx + (offX*cospitch*cosyaw) + (offY*cosroll*sinyaw + offY*sinroll*sinpitch*cosyaw) + offZ*sinroll*sinyaw - offZ*cosroll*sinpitch*cosyaw;
-				dy = camy - posy - (offX*cospitch*sinyaw) + (offY*cosroll*cosyaw - offY*sinroll*sinpitch*sinyaw) + offZ*sinroll*cosyaw + offZ*cosroll*sinpitch*sinyaw;
-				dz = posz - camz + (offX*sinpitch) - (offY*sinroll*cospitch) + (offZ*cosroll*cospitch);
-				d = sqrt(dx*dx + dy*dy);
+				// first, calculate the position of the voxbit relative to the camera (performing rotation)
+				dx = posx - camera.x + (offX*cospitch*cosyaw) + (offY*cosroll*sinyaw + offY*sinroll*sinpitch*cosyaw) + offZ*sinroll*sinyaw - offZ*cosroll*sinpitch*cosyaw;
+				dy = camera.y - posy - (offX*cospitch*sinyaw) + (offY*cosroll*cosyaw - offY*sinroll*sinpitch*sinyaw) + offZ*sinroll*cosyaw + offZ*cosroll*sinpitch*sinyaw;
+				dz = posz - camera.z + (offX*sinpitch) - (offY*sinroll*cospitch) + (offZ*cosroll*cospitch);
 				
 				// get the onscreen direction to the voxbit
 				ax = (dx*sinang)+(dy*cosang);
 				ay = (dx*cosang)-(dy*sinang);
 				if( ay <= 0 ) continue; // bit is outside the view frustrum
 				
-				// allocate memory for the voxbit
-				bit = (voxbit_t *) malloc(sizeof(voxbit_t));
-				bit->color = color;
+				// calculate distance
+				d = sqrt(dx*dx + dy*dy);
 				
 				// compute and store final information about the voxbit
-				bit->sx = (ax*(hx/ay)*-1)+hx; // onscreen position x
-				d *= cos((bit->sx-hx)*(1.0/xres)*(PI/2.0)); // correct fishbowl effect
-				if( d < CLIPNEAR || d > CLIPFAR ) {
-					free(bit);
+				sx = (ax*(hx/ay)*-1)+hx; // onscreen position x
+				d = min(max(d*cos((sx-hx)*perspective),d*cos(PI/4)),d); // correct fishbowl effect
+				if( d < CLIPNEAR || d > CLIPFAR )
 					continue;
-				}
-				bit->d = d;
-				bit->sy = hy+((hz/(double)d)*dz); // onscreen position y
+				sy = hy+((hz/d)*dz); // onscreen position y
 				
 				bitsize = 1.0/d*sprsize;
-				bit->x1 = max( bit->sx-bitsize-1, 0 );
-				bit->x2 = min( bit->sx+bitsize+1, xres );
-				bit->y1 = max( bit->sy-bitsize-1, 0 );
-				bit->y2 = min( bit->sy+bitsize+1, yres );
+				x1 = max( sx-bitsize-1, 0 );
+				x2 = min( sx+bitsize+1, xres );
+				y1 = max( sy-bitsize-1, 0 );
+				y2 = min( sy+bitsize+1, yres );
 				
-				// place the voxbit in the list
-				if( firstbit == NULL ) {
-					firstbit = bit;
-					bit->next = NULL;
-				}
-				else {
-					bit->next = firstbit;
-					firstbit = bit;
-				}
-			}
-		}
-	}
-	
-	// draw the voxel model
-	if( firstbit != NULL ) {
-		for( bit=firstbit;bit!=NULL;bit=bit->next ) {
-			for( y=bit->y1; y<bit->y2; y++ ) {
-				p = (Uint8 *)screen->pixels + y * screen->pitch; // calculate the row we are drawing in
-				screenindex=bit->x1*screen->format->BytesPerPixel;
-				for( x=bit->x1; x<bit->x2; x++ ) {
-					if( bit->d < zbuffer[x+y*xres] || !zbuffer[x+y*xres] ) {
-						*(Uint32 *)((Uint8 *)p + screenindex) = bit->color;
-						zbuffer[x+y*xres]=bit->d;
+				// draw the voxbit
+				for( x=x1; x<x2; x++ ) {
+						zoffset=x*yres;
+						p = (Uint8 *)screen->pixels + x * screen->format->BytesPerPixel;
+						screenindex = y1*screen->pitch;
+						for( y=y1; y<y2; y++ ) {
+							index=y+zoffset;
+							if( d <= zbuffer[index] || !zbuffer[index] ) {
+								*(Uint32 *)((Uint8 *)p + screenindex)=color;
+								zbuffer[index]=d-0.01;
+							}
+							screenindex += screen->pitch;
+						}
 					}
-					screenindex+=screen->format->BytesPerPixel;
-				}
 			}
 		}
-		
-		// free the bit list
-		bit=firstbit;
-		do {
-			nextbit=bit->next;
-			free(bit);
-			bit=nextbit;
-		} while( nextbit != NULL );
 	}
 }
 
@@ -251,6 +228,12 @@ int main(int argc, char **argv ) {
 	long vx=0;
 	long vy=0;
 	long vz=0;
+	
+	// set camera position
+	camera.x = 0;
+	camera.y = 100;
+	camera.z = 0;
+	camera.ang = 3*PI/2;
 
 	// load a voxel model
 	if( argc>1 ) {
@@ -318,10 +301,10 @@ int main(int argc, char **argv ) {
 		while( modelang > PI*2 )
 			modelang -= PI*2;
 		if(keystatus[SDLK_SPACE]) {
-			vx = camx;
-			vy = camy;
-			vz = camz;
-			modelang = camang;
+			vx = camera.x;
+			vy = camera.y;
+			vz = camera.z;
+			modelang = camera.ang;
 		}
 		
 		// rendering
@@ -331,10 +314,10 @@ int main(int argc, char **argv ) {
 		
 		// print some debug info
 		PrintText(font8_bmp,8,yres-16,"FPS:%6.1f", fps);
-		PrintText(font8_bmp,8,8,"angle: %d", (long)(camang*180.0/PI));
-		PrintText(font8_bmp,8,16,"x: %d", (long)camx);
-		PrintText(font8_bmp,8,24,"y: %d", (long)camy);
-		PrintText(font8_bmp,8,32,"z: %d", (long)camz);
+		PrintText(font8_bmp,8,8,"angle: %d", (long)(camera.ang*180.0/PI));
+		PrintText(font8_bmp,8,16,"x: %d", (long)camera.x);
+		PrintText(font8_bmp,8,24,"y: %d", (long)camera.y);
+		PrintText(font8_bmp,8,32,"z: %d", (long)camera.z);
 		
 		SDL_Flip( screen );
 		cycles++;
