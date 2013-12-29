@@ -59,6 +59,19 @@ void ReceiveInput(void) {
 				mousex = event.motion.xrel;
 				mousey = event.motion.yrel;
 				break;
+			case SDL_VIDEORESIZE: // if the window is resized
+				if(fullscreen)
+					break;
+				xres = max(event.resize.w,100);
+				yres = max(event.resize.h,75);
+				if( zbuffer != NULL )
+					free(zbuffer);
+				zbuffer=(double *) malloc(sizeof(double)*xres*yres);
+				if((screen=SDL_SetVideoMode( xres, yres, 32, SDL_HWSURFACE | SDL_RESIZABLE )) == NULL) {
+					fprintf(stderr, "failed to set video mode.\n");
+					mainloop=0;
+				}
+				break;
 		}
 	}
 	
@@ -289,9 +302,9 @@ int main(int argc, char **argv ) {
 		SDL_ShowCursor(0);
 	}
 	else
-		screen = SDL_SetVideoMode( xres, yres, 32, SDL_HWSURFACE );
+		screen = SDL_SetVideoMode( xres, yres, 32, SDL_HWSURFACE | SDL_RESIZABLE );
 	SDL_WM_SetCaption( "VoxRender", 0 );
-	zbuffer = (long *) malloc(xres*yres*sizeof(long));
+	zbuffer = (double *) malloc(xres*yres*sizeof(double));
 	
 	// main loop
 	while(mainloop) {
@@ -310,7 +323,7 @@ int main(int argc, char **argv ) {
 		}
 		
 		// rendering
-		memset( zbuffer, 0, xres*yres*sizeof(long) );
+		memset( zbuffer, 0, xres*yres*sizeof(double) );
 		SDL_FillRect(screen, NULL, SDL_MapRGB(screen->format,50,50,150)); // wipe screen
 		DrawVoxel(&model,vx,vy,vz,modelang,modelang,modelang);
 		
