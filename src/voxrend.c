@@ -202,18 +202,18 @@ void DrawVoxel( voxel_t *model, long posx, long posy, long posz, double yaw, dou
 				
 				// draw the voxbit
 				for( x=x1; x<x2; x++ ) {
-						zoffset=x*yres;
-						p = (Uint8 *)screen->pixels + x * screen->format->BytesPerPixel;
-						screenindex = y1*screen->pitch;
-						for( y=y1; y<y2; y++ ) {
-							index=y+zoffset;
-							if( d <= zbuffer[index] || !zbuffer[index] ) {
-								*(Uint32 *)((Uint8 *)p + screenindex)=color;
-								zbuffer[index]=d-0.01;
-							}
-							screenindex += screen->pitch;
+					zoffset=x*yres;
+					p = (Uint8 *)screen->pixels + x * screen->format->BytesPerPixel;
+					screenindex = y1*screen->pitch;
+					for( y=y1; y<y2; y++ ) {
+						index=y+zoffset;
+						if( d <= zbuffer[index] || !zbuffer[index] ) {
+							*(Uint32 *)((Uint8 *)p + screenindex)=color;
+							zbuffer[index]=d-0.01;
 						}
+						screenindex += screen->pitch;
 					}
+				}
 			}
 		}
 	}
