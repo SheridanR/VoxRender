@@ -199,6 +199,8 @@ void DrawVoxel( voxel_t *model, long posx, long posy, long posz, double yaw, dou
 				x2 = min( sx+bitsize+1, xres );
 				y1 = max( sy-bitsize-1, 0 );
 				y2 = min( sy+bitsize+1, yres );
+				if( x1>=xres || x2<0 || y1>=yres || y2<0 )
+					continue;
 				
 				// draw the voxbit
 				for( x=x1; x<x2; x++ ) {
@@ -324,11 +326,10 @@ int main(int argc, char **argv ) {
 	}
 	
 	// deinit
-	SDL_FreeSurface(screen);
-	SDL_FreeSurface(font8_bmp);
 	free(model.data);
 	free(zbuffer);
 	free(filename);
+	SDL_FreeSurface(font8_bmp);
 	SDL_Quit();
 	return 0;
 }
